@@ -1,8 +1,7 @@
 <?php
 /* $Id$ */
 /*
-	Copyright (C) 2010 Ermal Luçi
-	All rights reserved.
+	Copyright (C) 2010 Ermal Luç©Š	All rights reserved.
 
 	Copyright (C) 2007, 2008 Scott Ullrich <sullrich@gmail.com>
 	All rights reserved.
@@ -41,7 +40,8 @@
 		pfSense_BUILDER_BINARIES:	/usr/sbin/pw	/bin/cp
 		pfSense_MODULE:	auth
 */
-
+require_once('Requests/library/Requests.php');
+require_once('JSON.php');
 /*
  * NOTE : Portions of the mschapv2 support was based on the BSD licensed CHAP.php
  * file courtesy of Michael Retterklieber.
@@ -951,6 +951,8 @@ function ldap_get_groups($username, $authcfg) {
 	return $memberof;
 }
 
+
+
 function ldap_backed($username, $passwd, $authcfg) {
 	global $debug, $config;
 	
@@ -1151,6 +1153,77 @@ function radius_backed($username, $passwd, $authcfg){
 	return $ret;
 }
 
+
+function nexudusspaces_backed($username, $passwd, $accesstoken, $mac, $space, $token) {
+  
+   Requests::register_autoloader();
+
+  if(!$space) {
+	return array(
+        'success' => false,
+        'message' => 'Captive Portal is not configured correctly. The Web address for your Nexudus Account is missing.'
+    );
+  }
+  if(!$token) {
+	return array(
+        'success' => false,
+        'message' => 'Captive Portal is not configured correctly. The Authentication token for your Nexudus Account is missing.'
+    );
+  }
+   
+  $url = 'http://' . $space . '.spaces.nexudus.com/api/public/checkin';
+  $data = array(
+		'email' => $username, 
+		'password' => $passwd, 
+		'mac' => $mac,
+		'token' => $accesstoken
+		);
+  $headers = array(
+	'Content-Type' => 'application/json; charset=utf-8',
+	'Authorization' => $token
+	);
+
+  try {
+    $json = new Services_JSON();
+	
+    $response = Requests::post($url, $headers, $json->encode($data));
+	header("Content-Type: text/html");
+	
+    $body = $json->decode($response->body);
+	
+	if($body->WasSuccessful) {
+		return array(
+		'success' => true,
+		'message' => $body->Message,
+		'session_timeout' => $body->Value->SessionTimeOut
+		);
+	} else if(!$body->WasSuccessful) {
+		return array(
+		'success' => false,
+		'message' => $body->Message
+		);
+	} else {
+		log_error('ERROR NEXUDUS SPACES: Invalid response from Nexudus Spaces Servers (' . $response->status_code . ', Error: ' . $response->body . ')');
+		return array(
+		'success' => false,
+		'message' => 'Nexudus Spaces servers returned an invalid response'
+		);
+	}
+	} catch(Exception $e) {
+		header("Content-Type: text/html");
+		log_error('ERROR NEXUDUS SPACES: Could not contact Nexudus Spaces Servers (' . $e . ')');
+		return array(
+		  'success' => false,
+		  'message' => 'Could not contact Nexudus Spaces Servers.'
+		);
+	}
+  
+	return array(
+	  'success' => true,
+	  'message' => 'Welcome to the Space'
+	);
+}
+
 function get_user_expiration_date($username) {
 	$user = getUserEntry($username);
 	if ($user['expires']) 
@@ -1215,6 +1288,9 @@ function getUserGroups($username, $authcfg) {
 		break;
 	case 'radius':
 		break;
+	case 'nexudusspaces':
+		$allowed_groups = "all";
+		break;
 	default:
 		$user = getUserEntry($username);
 		$allowed_groups = @local_user_get_groups($user, true);
@@ -1247,6 +1323,10 @@ function authenticate_user($username, $password, $authcfg = NULL) {
                 if (radius_backed($username, $password, $authcfg))
                         $authenticated = true;
                 break;
+		case 'nexudusspaces':
+				if (nexudusspaces_backed($username, $password, $authcfg))
+					$authenticated = true;
+                break;
         default:
                 /* lookup user object by name */
                 if (local_backed($username, $password))
@@ -1256,6 +1336,8 @@ function authenticate_user($username, $password, $authcfg = NULL) {
 
 	return $authenticated;
 }
+
+
 
 function session_auth() {
 	global $HTTP_SERVER_VARS, $config, $_SESSION, $page;

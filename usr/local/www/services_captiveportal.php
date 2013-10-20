@@ -106,6 +106,8 @@ $pconfig['radiussrcip_attribute'] = $config['captiveportal']['radiussrcip_attrib
 $pconfig['passthrumacadd'] = isset($config['captiveportal']['passthrumacadd']);
 $pconfig['passthrumacaddusername'] = isset($config['captiveportal']['passthrumacaddusername']);
 $pconfig['radmac_format'] = $config['captiveportal']['radmac_format'];
+$pconfig['nexudusspaces_space'] = $config['captiveportal']['nexudusspaces_space'];
+$pconfig['nexudusspaces_auth'] = $config['captiveportal']['nexudusspaces_auth'];
 
 if ($_POST) {
 
@@ -217,7 +219,9 @@ if ($_POST) {
 		$config['captiveportal']['passthrumacadd'] = $_POST['passthrumacadd'] ? true : false;
 		$config['captiveportal']['passthrumacaddusername'] = $_POST['passthrumacaddusername'] ? true : false;
 		$config['captiveportal']['radmac_format'] = $_POST['radmac_format'] ? $_POST['radmac_format'] : false;
-
+		$config['captiveportal']['nexudusspaces_space'] = $_POST['nexudusspaces_space'];
+		$config['captiveportal']['nexudusspaces_auth'] = $_POST['nexudusspaces_auth'];
+		
 		/* file upload? */
 		if (is_uploaded_file($_FILES['htmlfile']['tmp_name']))
 			$config['captiveportal']['page']['htmltext'] = base64_encode(file_get_contents($_FILES['htmlfile']['tmp_name']));
@@ -248,7 +252,12 @@ function enable_change(enable_change) {
 	var endis, radius_endis;
 	endis = !(document.iform.enable.checked || enable_change);
 	radius_endis = !((!endis && document.iform.auth_method[2].checked) || enable_change);
-
+	
+	nexudus_endis = !((!endis && document.iform.auth_method[3].checked) || enable_change);
+	document.iform.nexudusspaces_space.disabled = nexudus_endis;
+	document.iform.nexudusspaces_auth.disabled = nexudus_endis;
+	document.iform.auth_method[3].disabled = endis;
+	
 	document.iform.cinterface.disabled = endis;
 	document.iform.maxprocperip.disabled = endis;
 	document.iform.idletimeout.disabled = endis;
@@ -463,7 +472,7 @@ value="<?=htmlspecialchars($pconfig['maxprocperip']);?>"> <?=gettext("per client
 	  <td width="78%" class="vtable">
 		<table cellpadding="0" cellspacing="0">
 		<tr>
-		  <td colspan="2"><input name="auth_method" type="radio" id="auth_method" value="none" onClick="enable_change(false)" <?php if($pconfig['auth_method']!="local" && $pconfig['auth_method']!="radius") echo "checked"; ?>>
+		  <td colspan="2"><input name="auth_method" type="radio" id="auth_method" value="none" onClick="enable_change(false)" <?php if($pconfig['auth_method']!="local" && $pconfig['auth_method']!="radius" && $pconfig['auth_method']!="nexudusspaces") echo "checked"; ?>>
   <?=gettext("No Authentication"); ?></td>
 		  </tr>
 		<tr>
@@ -474,11 +483,36 @@ value="<?=htmlspecialchars($pconfig['maxprocperip']);?>"> <?=gettext("per client
 		  <td colspan="2"><input name="auth_method" type="radio" id="auth_method" value="radius" onClick="enable_change(false)" <?php if($pconfig['auth_method']=="radius") echo "checked"; ?>>
   <?=gettext("RADIUS Authentication"); ?></td>
 		  </tr><tr>
+		  </tr>
+		<tr>
+		  <td colspan="2"><input name="auth_method" type="radio" id="auth_method" value="nexudusspaces" onClick="enable_change(false)" <?php if($pconfig['auth_method']=="nexudusspaces") echo "checked"; ?>>
+  <?=gettext("Nexudus Spaces"); ?></td>
+		  </tr><tr>
 		  <td>&nbsp;</td>
 		  <td>&nbsp;</td>
 		  </tr>
 		</table>
 		<table width="100%" border="0" cellpadding="6" cellspacing="0">
+		
+			<tr>
+            	<td colspan="2" valign="top" class="optsect_t2"><?=gettext("Nexudus Spaces Account"); ?></td>
+			</tr>
+			<tr>
+				<td class="vncell" valign="top"><?=gettext("Web Address"); ?></td>
+				<td class="vtable"><input name="nexudusspaces_space" type="text" class="formfld unknown" id="nexudusspaces_space" size="20" value="<?=htmlspecialchars($pconfig['nexudusspaces_space']);?>"><br>
+				<?=gettext("Type the first part (before the first dot, without '.spaces.nexudus.com') of the web address of your space in your Nexudus Spaces Account. Click <a target=\"_blank\" href=\"https://spaces.nexudus.com/Sys/Businesses\">here</a> to view the list of your spaces."); ?></td>
+			</tr>
+			<tr>
+				<td class="vncell" valign="top"><?=gettext("Authentication"); ?></td>
+				<td class="vtable"><input name="nexudusspaces_auth" type="text" class="formfld unknown" id="nexudusspaces_auth" size="20" value="<?=htmlspecialchars($pconfig['nexudusspaces_auth']);?>"><br>
+				<?=gettext("Type the authentication token displayed in the details of the user your used to get registered. Click <a target=\"_blank\" href=\"https://spaces.nexudus.com/Sys/Users\">here</a> to view the list of users in your account."); ?></td>
+			</tr>
+			<tr>
+			<td colspan="2" valign="top" class="optsect_t2">
+			<br/>
+			<br/>
+			</td>
+			</tr>
         	<tr>
             	<td colspan="2" valign="top" class="optsect_t2"><?=gettext("Primary RADIUS server"); ?></td>
 			</tr>

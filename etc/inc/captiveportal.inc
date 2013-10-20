@@ -48,6 +48,8 @@ require_once("functions.inc");
 require_once("filter.inc");
 require_once("radius.inc");
 require_once("voucher.inc");
+require_once('Requests/library/Requests.php');
+require_once('JSON.php');
 
 function get_default_captive_portal_html() {
 	global $config, $g;
@@ -124,78 +126,121 @@ EOD;
 
 	// Vouchers are not found, return the normal user/pass auth page
 	$htmltext = <<<EOD
-<html> 
-	<body> 
-		<form method="post" action="\$PORTAL_ACTION\$"> 
-		<input name="redirurl" type="hidden" value="\$PORTAL_REDIRURL\$">
-			<center>
-				<table cellpadding="6" cellspacing="0" width="550" height="380" style="border:1px solid #000000">
-					<tr height="10" bgcolor="#990000">
-						<td style="border-bottom:1px solid #000000">
-							<font color='white'>
-								<b>
-									{$g['product_name']} captive portal
-								</b>
-							</font>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<div id="mainlevel">
-								<center>
-									<table width="100%" border="0" cellpadding="5" cellspacing="0">
-										<tr>
-											<td>
-												<center>
-													<div id="mainarea">
-														<center>
-															<table width="100%" border="0" cellpadding="5" cellspacing="5">
-																<tr>
-																	<td>
-																		<div id="maindivarea">
-																			<center>
-																				<div id='statusbox'>
-																					<font color='red' face='arial' size='+1'>
-																						<b>
-																							\$PORTAL_MESSAGE\$
-																						</b>
-																					</font>
-																				</div>
-																				<br/>
-																				<div id='loginbox'>
-																					<table>
-																					   <tr><td colspan="2"><center>Welcome to the {$g['product_name']} Captive Portal!</td></tr>
-																					   <tr><td>&nbsp;</td></tr>
-																					   <tr><td align="right">Username:</td><td><input name="auth_user" type="text" style="border: 1px dashed;"></td></tr>
-																					   <tr><td align="right">Password:</td><td><input name="auth_pass" type="password" style="border: 1px dashed;"></td></tr>
-																					   <tr><td>&nbsp;</td></tr>
-																					   <tr>
-																						 <td colspan="2">
-																							<center><input name="accept" type="submit" value="Continue"></center>
-																						 </td>
-																					   </tr>
-																					</table>
-																				</div>
-																			</center>
-																		</div>
-																	</td>
-																</tr>
-															</table>
-														</center>
-													</div>
-												</center>
-											</td>
-										</tr>
-									</table>
-								</center>
-							</div>
-						</td>
-					</tr>
-				</table>
-			</center>
-		</form>
-	</body> 
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Internet Access</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=450">
+	<!-- Global stylesheets -->
+	<link href="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/css/reset.css" rel="stylesheet" type="text/css">
+	<link href="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/css/common.css" rel="stylesheet" type="text/css">
+	<link href="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/css/form.css" rel="stylesheet" type="text/css">
+	<link href="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/css/standard.css" rel="stylesheet" type="text/css">
+	<link href="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/css/special-pages.css" rel="stylesheet" type="text/css">
+	
+	<!-- Generic libs -->
+	<script type="text/javascript" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/js/html5.js"></script><!-- this has to be loaded before anything else -->
+	<script type="text/javascript" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/js/libs/jquery-1.6.3.min.js"></script>
+	<script type="text/javascript" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/js/old-browsers.js"></script>		<!-- remove if you do not need older browsers detection -->
+   
+    <!-- App Scripts -->
+
+	<!-- Template core functions -->
+	<script type="text/javascript" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/js/common.js"></script>
+	<script type="text/javascript" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/js/standard.js"></script>
+
+	<!--[if lte IE 8]><script type="text/javascript" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com//Content/themes/admin/js/standard.ie.js"></script><![endif]-->
+	<script type="text/javascript" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/Content/themes/admin/js/jquery.tip.js"></script>
+
+	<script type="text/javascript">
+	    $(document).ready(function () {
+			if($('#message').text() != ""){
+				$('#login-block').removeBlockMessages().blockMessage($('#message').text(), { type: 'warning' });
+			}
+		
+	        $('body').applyTemplateSetup();
+	        $('#login-form').submit(function (event) {
+	            // Check fields
+	            var login = $('#auth_user').val();
+	            var pass = $('#auth_pass').val();
+				var token = $('#auth_token').val();
+
+	            if ((!token || token.length == 0) && (!login || login.length == 0)) {
+	                $('#login-block').removeBlockMessages().blockMessage('Type your email or an access token.', { type: 'warning' });
+					return false;
+	            }
+	            else if ((!token || token.length == 0) && (!pass || pass.length == 0)) {
+	                $('#login-block').removeBlockMessages().blockMessage('Type your password or an access token.', { type: 'warning' });
+					return false;
+	            }
+	            else {
+	                var submitBt = $(this).find('button[type=submit]');
+	                submitBt.disableBt();
+	                return true;
+	            }
+	        });
+	    });
+	</script>
+
+    <style type="text/css">
+		#nexudus-logo { margin-bottom: 15px; }
+    </style>
+</head>
+
+<body class="special-page login-bg dark">
+<!-- The template uses conditional comments to add wrappers div for ie8 and ie7 - just add .ie, .ie7 or .ie6 prefix to your css selectors when needed -->
+
+<!--[if lt IE 9]><div class="ie"><![endif]-->
+<!--[if lt IE 8]><div class="ie7"><![endif]-->
+	<div style="display:none" id="message">\$PORTAL_MESSAGE\$</div>
+	<section id="login-block">
+        <img id="nexudus-logo" style="height:50px" src="//\$SPACE_ACCOUNT\$.spaces.nexudus.com/en-gb/business/getlogo?h=50"/>
+        
+		<div class="block-border"><div class="block-content">	
+			<div class="block-header">
+                Internet Access
+              </div>		
+			<form class="form with-margin" name="login-form" id="login-form" method="post" action="\$PORTAL_ACTION\$"> 
+				<input name="redirurl" type="hidden" value="\$PORTAL_REDIRURL\$">
+				<input name="accept" type="hidden" value="Continue">
+				<p>
+				    <small>Use your email if you are registered with this space</small>
+				</p>
+				<p class="inline-small-label">
+					<label for="auth_user"><span class="big">Email</span></label>
+					<input type="text" name="auth_user" id="auth_user" class="full-width" value="" autocomplete="off">
+				</p>
+				<p class="inline-small-label">
+				    <label for="auth_pass"><span class="big">Password</span></label>
+				    <input type="password" name="auth_pass" id="auth_pass" class="full-width" value="" autocomplete="off">
+				</p>
+				<hr/>
+                <p>
+				    <small>Or use an access token if you have one</small>
+				</p>
+				<p class="inline-small-label">
+				    <label for="auth_pass"><span class="big">Token</span></label>
+				    <input type="text" name="auth_token" id="auth_token" class="full-width" value="" autocomplete="off">
+				</p>
+				<br />
+				<button type="submit" class="float-right">Connect to Internet</button>
+				<button type="button" onclick="window.location='http://\$SPACE_ACCOUNT\$.spaces.nexudus.com/'" class="float-right">Join Us</button>
+                <br />
+			</form>			
+		</div>
+        </div>
+	    <br />
+	    <p class="align-center"><small>Powered by <a href="http://www.nexuduSSpaces.com">Nexudus Spaces</a></small></p>
+	</section>
+
+<!--[if lt IE 8]></div><![endif]-->
+<!--[if lt IE 9]></div><![endif]-->
+</body>
 </html>
+
 
 EOD;
 
@@ -291,6 +336,9 @@ function captiveportal_configure() {
 				$errtext = str_replace("\$PORTAL_REDIRURL\$", "{$config['captiveportal']['preauthurl']}", $errtext);
 				$errtext = str_replace("#PORTAL_REDIRURL#", "{$config['captiveportal']['preauthurl']}", $errtext);
 			}
+			
+			$errtext = str_replace("\$SPACE_ACCOUNT\$", "{$config['captiveportal']['nexudusspaces_space']}", $errtext);
+			
 			fwrite($fd, $errtext);
 			fclose($fd);
 		}
@@ -697,7 +745,7 @@ function captiveportal_prune_old() {
 		}
 
 		/* if vouchers are configured, activate session timeouts */
-		if (!$timedout && isset($config['voucher']['enable']) && !empty($cpentry[7])) {
+		if (!$timedout && !empty($cpentry[7])) {
 			if ($pruning_time >= ($cpentry[0] + $cpentry[7])) {
 				$timedout = true;
 				$term_cause = 5; // Session-Timeout
@@ -829,7 +877,31 @@ function captiveportal_disconnect($dbent, $radiusservers,$term_cause = 1,$stop_t
 		$vouchersyncusername = $config['voucher']['vouchersyncusername'];
 		$remote_status = xmlrpc_sync_voucher_disconnect($dbent, $syncip, $syncport, $syncpass, $vouchersyncusername, $term_cause, $stop_time);
 	}
-
+	
+	//If nexudus spaces auth is enabled - notify server from the disconnection
+	if($config['captiveportal']['auth_method'] == "nexudusspaces")
+	{
+		Requests::register_autoloader();
+		$space = $config['captiveportal']['nexudusspaces_space'];
+		$token = $config['captiveportal']['nexudusspaces_auth'];
+		$url = 'https://' . $space . '.spaces.nexudus.com/api/public/checkin';
+		$data = array(
+			'disconnect' => true,
+			'email' => $dbent[4], 
+			'mac' => $dbent[3]
+		);
+		$headers = array(
+			'Content-Type' => 'application/json; charset=utf-8',
+			'Authorization' => $token
+		);
+		
+		try {
+			$json = new Services_JSON();
+			$response = Requests::post($url, $headers, $json->encode($data));
+		} catch(Exception $e) {
+			captiveportal_logportalauth($dbent[4], $dbent[3], $dbent[2], "ERROR - Checking out on Nexudus Spaces " . $e);
+		}
+	}
 }
 
 /* remove a single client by sessionid */
@@ -1702,10 +1774,13 @@ function portal_allow($clientip,$clientmac,$username,$password = null, $attribut
 				$remaining_time = 0;
 
 			/* This user was already logged in so we disconnect the old one */
-			captiveportal_disconnect($cpentry,$radiusservers,13);
-			captiveportal_logportalauth($cpentry[4],$cpentry[3],$cpentry[2],"CONCURRENT LOGIN - TERMINATING OLD SESSION");
-			unset($cpdb[$sid]);
+			if (isset($config['captiveportal']['noconcurrentlogins']))  {
+				captiveportal_disconnect($cpentry,$radiusservers,13);
+				captiveportal_logportalauth($cpentry[4],$cpentry[3],$cpentry[2],"CONCURRENT LOGIN - TERMINATING OLD SESSION");
+				unset($cpdb[$sid]);
+			}
 			break;
+			
 		}
 		elseif ((isset($config['captiveportal']['noconcurrentlogins'])) && ($username != 'unauthenticated')) {
 			/* on the same username */
